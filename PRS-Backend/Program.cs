@@ -7,9 +7,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
+var connectionStringKey = "PrsDbConnStr";
+#if DEBUG
+connectionStringKey = "PrsDbConnStrLocal";
+#endif
+
 builder.Services.AddDbContext<PrsDbContext>(x =>
 {
-    x.UseSqlServer(builder.Configuration.GetConnectionString("PrsDbConnStr"));
+    x.UseSqlServer(builder.Configuration.GetConnectionString(connectionStringKey));
 });
 
 builder.Services.AddCors();

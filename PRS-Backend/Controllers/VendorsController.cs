@@ -20,6 +20,52 @@ namespace PRS_Backend.Controllers
             _context = context;
         }
 
+        [HttpGet("po/{vendorId}")]
+        public async Task<ActionResult<Po>> CreatePo(int vendorId)
+        {
+            Po po = new Po();
+            po.Vendor = await _context.Vendors.FindAsync(vendorId);
+            var polines = (from vend in _context.Vendors
+                          join prod in _context.Products
+                          on vend.Id equals prod.VendorId
+                          join reqL in _context.RequestLines
+                          on prod.Id equals reqL.ProductId
+                          join req in _context.Requests
+                          on reqL.RequestId equals req.Id
+                          where req.Status == "APPROVED"
+                          select new
+                          {
+                              prod.Id,
+                              Product = prod.Name,
+                              reqL.Quantity,
+                              prod.Price,
+                              LineTotal = prod.Price * reqL.Quantity
+                          });
+            SortedList<int, Poline> sortedLines = new SortedList<int, Poline>();
+            decimal poTotal = 0;
+            foreach (var poline in polines)
+            {
+                if(!sortedLines.ContainsKey(poline.Id))
+                {
+                    Poline polineAdd = new Poline()
+                    {
+                        Product = poline.Product,
+                        Quantity = 0,
+                        Price = poline.Price,
+                        LineTotal = poline.LineTotal
+                    };
+                    sortedLines.Add(poline.Id, polineAdd);
+                    poTotal += polineAdd.LineTotal;
+                }
+                sortedLines[poline.Id].Quantity += poline.Quantity;
+            }
+
+            var addToPolinesProp = sortedLines.Values;
+            po.Polines = addToPolinesProp;
+            po.PoTotal = poTotal;
+            return po;
+        }
+
         // GET: api/Vendors
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Vendor>>> GetVendors()

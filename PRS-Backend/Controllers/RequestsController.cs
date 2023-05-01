@@ -25,7 +25,7 @@ namespace PRS_Backend.Controllers
         [HttpGet("/api/requests/reviews/{userId}")]
         public async Task<ActionResult<IEnumerable<Request>>> RequestsInReviewStatus(int userId)
         {
-            List<Request> requests = await _context.Requests.ToListAsync();
+            List<Request> requests = await _context.Requests.Include(x => x.Users).ToListAsync();
 
             List<Request> reviewRequests = new List<Request>();
 
@@ -48,7 +48,7 @@ namespace PRS_Backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Request>>> GetRequests()
         {
-            return await _context.Requests.Include(x => x.Users).ToListAsync();
+            return await _context.Requests.Include(x => x.Users).Include(x => x.RequestLines).ToListAsync();
         }
 
         // GET: api/Requests/5
@@ -86,6 +86,7 @@ namespace PRS_Backend.Controllers
             }
 
             request.Status = "REVIEW";
+            request.RejectionReason = "";
             return await PutRequest(id, request);
         }
 
@@ -107,16 +108,14 @@ namespace PRS_Backend.Controllers
         // PUT: /api/requests/reject/{id}
         // Sets the status of the request for the id provided to "REJECTED"
         [HttpPut("/api/requests/reject/{id}")]
-        public async Task<IActionResult> RejectRequest(int id)
+        public async Task<IActionResult> RejectRequest(Request request)
         {
-            Request? request = await _context.Requests.FindAsync(id);
-
             if (request is null)
             {
                 return NotFound();
             }
             request.Status = "REJECTED";
-            return await PutRequest(id, request);
+            return await PutRequest(request.Id, request);
         }
 
         // PUT: api/Requests/5
